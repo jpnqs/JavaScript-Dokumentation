@@ -1,4 +1,11 @@
 const MsgToast = {
+  toastCount: {
+    "top-left": 0,
+    "top-right": 0,
+    "bottom-left": 0,
+    "bottom-right": 0
+  },
+
   types: {
     success: {
       background: "#aff1c7",
@@ -14,10 +21,41 @@ const MsgToast = {
     }
   },
 
+  positions: {
+    "top-left": "left: 0;",
+    "top-right": "right: 0;",
+    "bottom-left": "bottom: 0; left: 0",
+    "bottom-right": "bottom: 0; right: 0"
+  },
+
   notify: function (settings){
     if (!settings.text) throw "No Text passed through!";
 
     this.addToast(settings.text, settings);
+  },
+
+  getContainer: function (position) {
+    let container = document.getElementById(`toastsContainer-${position}`);
+    if (container) {
+      return container;
+    } else {
+      return this.createContainer(position);
+    }
+  },
+
+  createContainer: function(position) {
+    let body = document.getElementsByTagName("body")[0];
+    let bodyHTML = body.innerHTML;
+    let positionCss = this.positions[position] ? this.positions[position] : this.positions["top-right"];
+
+    let containerHtml = `<div id="toastsContainer-${position}" style="position: absolute; margin: 10px; ${positionCss}"></div>`;
+    body.innerHTML = containerHtml + bodyHTML;
+
+    return document.getElementById(`toastsContainer-${position}`);
+  },
+
+  destroyContainer: function(position) {
+    document.getElementById(`toastsContainer-${position}`).remove();
   },
 
   addToast: function (msg, settings) {
@@ -38,7 +76,11 @@ const MsgToast = {
       <p style="margin: 5px;">${msg}</p>
     </div>`;
 
-    toastsElement = document.getElementById("toasts");
+    if (!settings.position) {
+      settings.position = "top-left";
+    }
+
+    toastsElement = this.getContainer(settings.position);
 
     if (!toastsElement) throw "No element to put Messagetoasts into!"
 
@@ -46,9 +88,15 @@ const MsgToast = {
     currToasts = html + currToasts;
 
     toastsElement.innerHTML = currToasts;
+    this.toastCount[settings.position]++;
 
     setTimeout(() => {
       document.getElementById(id).remove();
+      this.toastCount[settings.position]--;
+
+      if (this.toastCount[settings.position] < 1) {
+        this.destroyContainer(settings.position);
+      }
     }, parseInt(settings.displayTime))
   },
 
